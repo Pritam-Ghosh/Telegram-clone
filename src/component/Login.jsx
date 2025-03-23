@@ -3,28 +3,56 @@ import telegramLogo from '../assets/telegram.png'
 import googleLogin from '../assets/google.png'
 import { KeyRound } from 'lucide-react'
 
+//react router DOM
+import { useNavigate } from 'react-router-dom'
 
 //firebase import
-import { useNavigate } from 'react-router-dom';
-import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../../firebase';
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider, db, doc, setDoc } from "../../firebase"; // Import Firestore functions
 
-function Login() {
-  const navigate = useNavigate();
+//------------------------------------------------------------
 
-const [isLoggedIn,setIsLoggedIn] = useState(false)
 
-  const handleGoogleLogin = async () => {
-    //firebase login
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log("User Info:", result.user);
-      setIsLoggedIn(true);
-    } catch (error) {
-      console.error("Google Login Error:", error);
-    }
 
-    navigate('/')
+function Login({ setIsLoggedIn }) {
+  const navigate = useNavigate()
+
+const createUser = async (userData) => {
+  //extract user data
+  const userObj = userData.user;
+  const id = userObj.uid;
+  const photoURL = userObj.photoURL;
+  const name = userObj.displayName;
+  const email = userObj.email;
+
+  console.log("id: ", id);
+  console.log("photoURL: ", photoURL);
+  console.log("name: ", name);
+  console.log("email: ", email);
+
+  //pushing user data to firestore
+  await setDoc(doc(db, "users", userObj.uid), {
+    uid: userObj.uid,
+    displayName: userObj.displayName,
+    email: userObj.email,
+    photoURL: userObj.photoURL,
+    // Add any other relevant user data
+  });
+  
+}
+
+  const handleGoogleLogin = () => {
+  const userData =   signInWithPopup(auth, provider)
+      .then((userData) => {
+        console.log("user login: ", userData);
+        setIsLoggedIn(true)
+        navigate('/')
+        createUser(userData)
+      })
+      .catch((error) => {
+        console.error("Error signing in:", userData);
+      });
+
   }
   return (
     <>
@@ -43,10 +71,6 @@ const [isLoggedIn,setIsLoggedIn] = useState(false)
             <img src={googleLogin} alt="Google Logo" className="w-5 h-5" />
             Sign in with Google</button>
         </div>
-
-
-
-
       </div>
 
     </>
@@ -54,3 +78,9 @@ const [isLoggedIn,setIsLoggedIn] = useState(false)
 }
 
 export default Login
+
+
+// step 1 UI design and event handle
+// step 2 protected route and Google authentication
+// step 3 extract user data and push to firestore
+// step 4 design profile component and upload file to firebase storage
